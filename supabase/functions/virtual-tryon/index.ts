@@ -13,6 +13,7 @@ serve(async (req) => {
 
   try {
     const { personImage, outfitImage } = await req.json();
+    console.log("Received request with personImage length:", personImage?.length, "outfitImage length:", outfitImage?.length);
 
     if (!personImage || !outfitImage) {
       return new Response(
@@ -23,8 +24,11 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+    
+    console.log("Calling AI gateway for virtual try-on...");
 
     // Use Gemini's image generation model for virtual try-on
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
