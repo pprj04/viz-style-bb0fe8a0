@@ -4,6 +4,7 @@ import UploadZone from './UploadZone';
 import ResultDisplay from './ResultDisplay';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const TryOnSection: React.FC = () => {
   const [personImage, setPersonImage] = useState<string | null>(null);
@@ -23,19 +24,42 @@ const TryOnSection: React.FC = () => {
     }
 
     setIsProcessing(true);
+    setResult(null);
     
-    // Simulate AI processing - in production, this would call the actual AI API
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // For demo, we'll show the person image with a success message
-    // In production, this would be the AI-generated result
-    setResult(personImage);
-    setIsProcessing(false);
-    
-    toast({
-      title: "Virtual Try-On Complete!",
-      description: "Your new look is ready to view.",
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('virtual-tryon', {
+        body: {
+          personImage,
+          outfitImage,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setResult(data.resultImage);
+      
+      toast({
+        title: "Virtual Try-On Complete!",
+        description: data.message || "Your new look is ready to view.",
+      });
+    } catch (error) {
+      console.error('Try-on error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process images';
+      
+      toast({
+        title: "Processing Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleReset = () => {
